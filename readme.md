@@ -58,7 +58,7 @@ Este proyecto utiliza el IDE NetBeans. Para abrir el proyecto en NetBeans:
 
 ### Cuando No se puede conectar a MySQL
 
-Por error en credenciales o porque localmente no se ha iniciado MySQL en Xampp (o localmente)
+Por error en credenciales o porque localmente no se ha iniciado MySQL en Xampp (u otro motor)
 
 <p align="center">
     <img src="src/quizzmaster/front/img/doc/error-sql.png" height="150" />
