@@ -7,7 +7,7 @@
 </h3>
 
 <p align="right">
-    <img src="src/quizzmaster/front/img/icon.png" height="100" />
+    <img src="src/quizzmaster/front/img/icon.png" height="150" />
 </p>
 
 QuizzMaster es una aplicación de cuestionarios construida con Java. Proporciona una plataforma interactiva para crear y realizar cuestionarios.
