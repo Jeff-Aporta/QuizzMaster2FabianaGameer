@@ -1,0 +1,182 @@
+@use "./coleccion1" as *;
+@use "./fx" as *;
+@use "./colors" as *;
+@use "./index.scss" as *;
+
+@each $value in (flex, none, block, inline-block) {
+  .d-#{$value} {
+    display: $value;
+  }
+}
+
+.d-flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+@each $value in (row, column) {
+  .flex-#{$value} {
+    flex-direction: $value;
+  }
+}
+
+@each $abrev,
+  $value
+    in (start: start, end: end, center: center, c: center, sb: space-between, se: space-evenly)
+{
+  .jc-#{$abrev} {
+    justify-content: $value;
+  }
+}
+
+@each $abrev, $value in (c: center, s: start, e: end, stretch: stretch) {
+  .ai-#{$abrev} {
+    align-items: $value;
+  }
+}
+
+@each $abrev, $value in (l: center, c: start, r: end) {
+  .ta-#{$abrev} {
+    text-align: $value;
+  }
+}
+
+@for $i from 1 through 10 {
+  .gap-#{$i * 10}px {
+    @extend .d-flex;
+    gap: $i * 10px;
+  }
+  .pad-#{$i * 10}px {
+    padding: $i * 10px;
+  }
+  .padh-#{$i * 10}px {
+    padding-top: $i * 10px;
+    padding-bottom: $i * 10px;
+  }
+  .padw-#{$i * 10}px {
+    padding-right: $i * 10px;
+    padding-left: $i * 10px;
+  }
+  .padt-#{$i * 10}px {
+    padding-top: $i * 10px;
+  }
+  .padr-#{$i * 10}px {
+    padding-right: $i * 10px;
+  }
+  .padb-#{$i * 10}px {
+    padding-bottom: $i * 10px;
+  }
+  .padl-#{$i * 10}px {
+    padding-left: $i * 10px;
+  }
+  .m-#{$i * 10}px {
+    margin: $i * 10px;
+  }
+  .mh-#{$i * 10}px {
+    margin-top: $i * 10px;
+    margin-bottom: $i * 10px;
+  }
+  .mw-#{$i * 10}px {
+    margin-right: $i * 10px;
+    margin-left: $i * 10px;
+  }
+  .mt-#{$i * 10}px {
+    margin-top: $i * 10px;
+  }
+  .mr-#{$i * 10}px {
+    margin-right: $i * 10px;
+  }
+  .mb-#{$i * 10}px {
+    margin-bottom: $i * 10px;
+  }
+  .ml-#{$i * 10}px {
+    margin-left: $i * 10px;
+  }
+}
+
+@for $i from 1 through 20 {
+  .h-#{$i * 10}vh {
+    height: #{$i * 10}vh;
+  }
+  .min-h-#{$i * 10}vh {
+    min-height: #{$i * 10}vh;
+  }
+  .min-w-#{$i * 50}px {
+    min-width: #{$i * 50}px;
+  }
+  .max-w-#{$i * 50}px {
+    max-width: #{$i * 50}px;
+  }
+}
+
+.minside-win {
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+}
+
+.fullWidth{
+  width: 100%;
+}
+
+@for $i from 11 through 100 {
+  .fs-#{$i}px {
+    font-size: #{$i}px;
+  }
+}
+
+@for $i from 1 through 10 {
+  .w-#{$i * 10}p {
+    width: $i * 10%;
+  }
+
+  .w-#{$i * 10}vw {
+    width: $i * 10vw;
+  }
+
+  .z-index#{$i} {
+    z-index: $i;
+  }
+
+  .op-#{$i * 10} {
+    opacity: calc(#{$i * 10} / 100);
+  }
+
+  .br-#{$i * 5}px {
+    border-radius: #{$i * 5}px !important;
+  }
+  .bottom-#{$i * 5}px {
+    bottom: #{$i * 5}px;
+  }
+  .right-#{$i * 5}px {
+    right: #{$i * 5}px;
+  }
+}
+
+.overflow-scroll {
+  overflow-y: scroll;
+}
+
+.sz-1px{
+  width: 1px;
+  height: 1px;
+}
+
+.absolute-expand {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}

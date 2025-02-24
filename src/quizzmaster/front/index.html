@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mi Página con JS Externo</title>
+    <link rel="stylesheet" href="index.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    />
+    <style class="rooted">
+      :root{
+        --r360: 0;
+      }
+    </style>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.25.5/babel.min.js"></script>
+    <script src="https://unpkg.com/@mui/material@5.16.7/umd/material-ui.production.min.js"></script>
+    <script type="text/babel" src="00-muitheme.jsx"></script>
+    <script type="text/babel" src="index.jsx" defer></script>
+  </head>
+  <body>
+    <div id="root">
+      Cargando...
+      <style>
+        body {
+          background-color: black;
+          color: white;
+          font-size: 200%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+        }
+      </style>
+    </div>
+  </body>
+</html>
