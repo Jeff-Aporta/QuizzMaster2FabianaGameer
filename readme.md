@@ -1,5 +1,11 @@
 # QuizzMaster 
 
+<h3>
+    <a href="https://jeff-aporta.github.io/QuizzMaster2FabianaGameer/">
+        https://jeff-aporta.github.io/QuizzMaster2FabianaGameer/
+    </a>
+</h3>
+
 <p align="right">
     <img src="src/quizzmaster/front/img/icon.png" height="100" />
 </p>
@@ -31,8 +37,7 @@ El proyecto está estructurado de la siguiente manera:
 1. Clona el repositorio
 2. Asegúrate de tener Java para ejecutar
 <br/>
-<br/>
-<img src="src/quizzmaster/front/img/java.png" height="100" />
+<img src="src/quizzmaster/front/img/java.png" height="70" />
 
 ## Desarrollo
 
