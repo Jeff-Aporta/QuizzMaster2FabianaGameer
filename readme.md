@@ -51,3 +51,15 @@ Este proyecto utiliza el IDE NetBeans. Para abrir el proyecto en NetBeans:
 
 - Creación y gestión de cuestionarios y usuarios
 - Interfaz interactiva para realizar cuestionarios
+
+---
+
+## Posibles errores
+
+### Cuando No se puede conectar a MySQL
+
+Por error en credenciales o porque localmente no se ha iniciado MySQL en Xampp (o localmente)
+
+<p align="center">
+    <img src="src/quizzmaster/front/img/doc/error-sql.png" height="150" />
+</p>
