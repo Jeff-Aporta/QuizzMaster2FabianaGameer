@@ -1,4 +1,6 @@
+build
 dist
 node_modules
 test
 package-lock.json
+*.form
