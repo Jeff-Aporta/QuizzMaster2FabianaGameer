@@ -356,7 +356,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {
         StringBuilder resultados = new StringBuilder();
-        String sql = "SELECT identificacion, puntaje FROM resultados;";
+        String sql = "SELECT identificacion, puntaje, total FROM resultados;";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
             ResultSet rs = pstmt.executeQuery();
@@ -364,7 +364,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             while (rs.next()) {
                 String id = rs.getString("identificacion");
                 int puntaje = rs.getInt("puntaje");
-                resultados.append("<li>" + id + ": " + puntaje + "</li>");
+                int total = rs.getInt("total");
+                resultados.append("<li>" + id + ": " + puntaje + " / " + total + "</li>");
             }
             resultados.append("</ol></body></html>");
             JOptionPane.showMessageDialog(null, resultados.toString(), "Lista de Resultados",
@@ -397,8 +398,10 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         terminar_quiz();
     }
 
-    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton6ActionPerformed
-        if (jTextField1.getText().equals(user) && jTextField2.getText().equals(pass)) {
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {
+        char[] passwordChars = jPasswordField1.getPassword();
+        String password = new String(passwordChars);
+        if (jTextField1.getText().equals(user) && password.equals(pass)) {
             auth = true;
             cambiarVista(VISTA_PANEL_ADMN);
         } else {
@@ -578,7 +581,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jLabel5 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
         jLabel7 = new javax.swing.JLabel();
-        jTextField2 = new javax.swing.JTextField();
+        jPasswordField1 = new javax.swing.JPasswordField();
         jButton6 = crearBoton(new Color(30, 144, 255));
         jPanel6 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
@@ -753,7 +756,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
         jLabel7.setText("Contraseña");
         jPanel4.add(jLabel7);
-        jPanel4.add(jTextField2);
+        jPanel4.add(jPasswordField1);
 
         jButton6.setFont(new java.awt.Font("sansserif", 0, 18)); // NOI18N
         jButton6.setText("Ingresar");
@@ -1218,6 +1221,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JPanel jPanel9;
+    private javax.swing.JPasswordField jPasswordField1;
     private javax.swing.JScrollPane jScrollPane2;
     public static javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTextField jTextField1;
@@ -1231,7 +1235,6 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField17;
     private javax.swing.JTextField jTextField18;
     private javax.swing.JTextField jTextField19;
-    private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField20;
     private javax.swing.JTextField jTextField21;
     private javax.swing.JTextField jTextField22;
