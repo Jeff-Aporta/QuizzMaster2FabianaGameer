@@ -10,6 +10,7 @@ import java.awt.Image;
 import java.awt.Insets;
 import java.awt.KeyboardFocusManager;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -17,11 +18,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Random;
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import static quizzmaster.NimbusModificado.*;
 import sounds.MIDI_parser;
+import sounds.Play_notes;
 import sounds.SecuenceLong_main;
 
 public class JFrameQuizzMaster extends javax.swing.JFrame {
@@ -53,6 +56,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
     // Variables de la conexión a la base de datos
     public static Connection conexion;
+
+    Play_notes notas = new Play_notes();
 
     // Métodos de inicialización
     public static void main(String args[]) {
@@ -108,6 +113,11 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 .fade_value(5)
                 .start_playing();
 
+        notas.CambiarInstrumento(Play_notes.HerramientasMIDI.WHISTLE);
+        notas.CambiarInstrumento(1, Play_notes.HerramientasMIDI._5TH_SAW_WAVE);
+        notas.CambiarInstrumento(2, Play_notes.HerramientasMIDI.SQUARE);
+        notas.CambiarInstrumento(3, Play_notes.HerramientasMIDI.CRYSTAL);
+
         setTimeout(() -> {
             MIDI_parser.midi_pararell("main-theme").fade_value(0);
         }, 5000);
@@ -146,7 +156,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         String sqlResultados = "CREATE TABLE IF NOT EXISTS resultados (\n"
                 + "id INT AUTO_INCREMENT PRIMARY KEY,\n"
                 + "identificacion VARCHAR(255),\n"
-                + "puntaje INT\n"
+                + "puntaje INT,\n"
+                + "total INT\n"
                 + ");";
         try {
             Statement stmt = conexion.createStatement();
@@ -154,6 +165,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             stmt.executeUpdate(sqlResultados);
         } catch (SQLException e) {
             e.printStackTrace();
+            notas.Reproducir(2, "2SI", 200, -1, 0.6f);
             JOptionPane.showMessageDialog(null, "Error al crear las tablas: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -206,10 +218,12 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 jButton9.setText(opciones[2]);
                 jButton10.setText(opciones[3]);
             } else {
+                notas.Reproducir(2, "2SI", 200, -1, 0.6f);
                 JOptionPane.showMessageDialog(null, "No se encontró la pregunta.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            notas.Reproducir(2, "2SI", 200, -1, 0.6f);
             JOptionPane.showMessageDialog(null, "Error al cargar la pregunta: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -219,24 +233,31 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         String respuestaSeleccionada = botonSeleccionado.getText();
         if (respuestaSeleccionada.equals(opcionCorrecta)) {
             contadorCorrectas++;
+            new Thread(() -> {
+                for (int i = 0; i < 20; i++) {
+                    notas.Reproducir(2, 63 + i, 20 + i * 2, 40, 0.6f);
+                }
+            }).start();
             JOptionPane.showMessageDialog(null, "¡Respuesta correcta!", "Correcto", JOptionPane.INFORMATION_MESSAGE);
         } else {
+            notas.Reproducir(2, "2SI", 200, -1, 0.6f);
             JOptionPane.showMessageDialog(null, "Respuesta incorrecta. Intenta de nuevo.", "Incorrecto",
                     JOptionPane.ERROR_MESSAGE);
         }
         contadorRealizadas++;
-        index_quest++; // Incrementar el índice después de responder
         jLabel30.setText("Correctas: " + contadorCorrectas);
         jLabel31.setText("Realizadas: " + contadorRealizadas);
+        cargarPreguntaPorId(index_quest++);
     }
 
     private void terminar_quiz() {
         // Guardar el puntaje en la base de datos
-        String sql = "INSERT INTO resultados (identificacion, puntaje) VALUES (?, ?);";
+        String sql = "INSERT INTO resultados (identificacion, puntaje, total) VALUES (?, ?, ?);";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
             pstmt.setString(1, identificacion_usuario);
             pstmt.setInt(2, contadorCorrectas);
+            pstmt.setInt(3, contadorRealizadas);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -335,17 +356,17 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {
         StringBuilder resultados = new StringBuilder();
-        String sql = "SELECT identificacion, puntaje FROM resultados ORDER BY id DESC;";
+        String sql = "SELECT identificacion, puntaje FROM resultados;";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
             ResultSet rs = pstmt.executeQuery();
-            resultados.append("<html><body><h2>Resultados:</h2><ul>");
+            resultados.append("<html><body><h2>Resultados:</h2><ol>");
             while (rs.next()) {
                 String id = rs.getString("identificacion");
                 int puntaje = rs.getInt("puntaje");
                 resultados.append("<li>" + id + ": " + puntaje + "</li>");
             }
-            resultados.append("</ul></body></html>");
+            resultados.append("</ol></body></html>");
             JOptionPane.showMessageDialog(null, resultados.toString(), "Lista de Resultados",
                     JOptionPane.INFORMATION_MESSAGE);
         } catch (SQLException e) {
@@ -501,6 +522,12 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                     @Override
                     public void mouseEntered(java.awt.event.MouseEvent evt) {
                         hover = true;
+                        notas.Reproducir(0, "5RE", 200, -1, 0.5f);
+                    }
+
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        notas.Reproducir(1, (int) ((10) * Math.random() + 65), 200, -1);
                     }
 
                     @Override
@@ -539,36 +566,37 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
+        jButton1 = crearBoton(new Color(30, 144, 255));
         jLabel2 = new javax.swing.JLabel();
-        jButton3 = new javax.swing.JButton();
+        jButton3 = crearBoton(new Color(30, 144, 255));
         jPanel3 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
-        jButton4 = new javax.swing.JButton();
+        jButton4 = crearBoton(new Color(30, 144, 255, 0));
         jLabel6 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
         jLabel7 = new javax.swing.JLabel();
         jTextField2 = new javax.swing.JTextField();
-        jButton6 = new javax.swing.JButton();
+        jButton6 = crearBoton(new Color(30, 144, 255));
         jPanel6 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
         jLabel9 = new javax.swing.JLabel();
-        jButton7 = new javax.swing.JButton();
-        jButton8 = new javax.swing.JButton();
-        jButton9 = new javax.swing.JButton();
-        jButton10 = new javax.swing.JButton();
+        jButton7 = crearBoton(new Color(30, 144, 255));
+        jButton8 = crearBoton(new Color(30, 144, 255));
+        jButton9 = crearBoton(new Color(30, 144, 255));
+        jButton10 = crearBoton(new Color(30, 144, 255));
         jPanel8 = new javax.swing.JPanel();
-        jButton5 = new javax.swing.JButton();
+        jButton5 = crearBoton(new Color(30, 144, 255));
         jLabel30 = new javax.swing.JLabel();
         jLabel31 = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jPanel10 = new javax.swing.JPanel();
         jPanel11 = new javax.swing.JPanel();
-        jButton16 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
+        jButton11 = crearBoton(new Color(30, 144, 255));
+        jButton16 = crearBoton(new Color(30, 144, 255));
+        jButton2 = crearBoton(new Color(30, 144, 255));
         jPanel9 = new javax.swing.JPanel();
         jPanel12 = new javax.swing.JPanel();
         jLabel8 = new javax.swing.JLabel();
@@ -671,9 +699,9 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap(289, Short.MAX_VALUE)
+                .addContainerGap(311, Short.MAX_VALUE)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(290, Short.MAX_VALUE))
+                .addContainerGap(312, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -741,9 +769,9 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addContainerGap(275, Short.MAX_VALUE)
+                .addContainerGap(297, Short.MAX_VALUE)
                 .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 299, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(276, Short.MAX_VALUE))
+                .addContainerGap(298, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -801,9 +829,9 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             }
         });
 
-        jLabel30.setText("Realizadas X");
+        jLabel30.setText("Correctas: 0");
 
-        jLabel31.setText("Correctas X");
+        jLabel31.setText("Realizadas: 0");
 
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
@@ -835,9 +863,9 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
                 .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addGap(18, 54, Short.MAX_VALUE)
                 .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 647, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addContainerGap(43, Short.MAX_VALUE))
         );
         jPanel6Layout.setVerticalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -856,6 +884,16 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
         jPanel11.setLayout(new java.awt.GridLayout(1, 0, 15, 0));
 
+        jButton11.setFont(new java.awt.Font("sansserif", 1, 18)); // NOI18N
+        jButton11.setText("Inicio");
+        jButton11.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton11ActionPerformed(evt);
+            }
+        });
+        jPanel11.add(jButton11);
+
+        jButton16.setFont(new java.awt.Font("sansserif", 1, 18)); // NOI18N
         jButton16.setText("Guardar");
         jButton16.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -864,6 +902,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         });
         jPanel11.add(jButton16);
 
+        jButton2.setFont(new java.awt.Font("sansserif", 1, 18)); // NOI18N
         jButton2.setText("Ver resultados");
         jButton2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1099,9 +1138,14 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
+        cambiarVista(VISTA_INICIO);
+    }//GEN-LAST:event_jButton11ActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton10;
+    private javax.swing.JButton jButton11;
     private javax.swing.JButton jButton16;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;

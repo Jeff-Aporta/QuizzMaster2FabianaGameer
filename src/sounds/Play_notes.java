@@ -52,14 +52,22 @@ public class Play_notes {
     }
 
     public void Reproducir(int Canal, String Nota) {
-        CanalSonido[Canal].noteOn(HerramientasMIDI.CalcularByte_Nota(Nota), (int) (Volúmen * 128));
+        Reproducir(Canal, Nota, 1);
+    }
+
+    public void Reproducir(int Canal, String Nota, float volumen) {
+        CanalSonido[Canal].noteOn(HerramientasMIDI.CalcularByte_Nota(Nota), (int) (volumen * Volúmen * 128));
     }
 
     public void Reproducir(int Canal, String Nota, int Sostener, int Pausa) {
+        Reproducir(Canal, Nota, Sostener, Pausa, 1);
+    }
+
+    public void Reproducir(int Canal, String Nota, int Sostener, int Pausa, float volumen) {
         new Thread() {
             @Override
             public void run() {
-                Reproducir(Canal, Nota);
+                Reproducir(Canal, Nota, volumen);
                 Descansar(Sostener);
                 Suspender(Canal, Nota);
             }
@@ -72,6 +80,10 @@ public class Play_notes {
     }
 
     public void Reproducir(int Canal, int Nota, int Sostener, int Pausa) {
+        Reproducir(Canal, Nota, Sostener, Pausa, 1);
+    }
+
+    public void Reproducir(int Canal, int Nota, int Sostener, int Pausa, float volumen) {
         new Thread() {
             @Override
             public void run() {
@@ -92,7 +104,11 @@ public class Play_notes {
     }
 
     public void Reproducir(int Canal, int byteNota) {
-        CanalSonido[Canal].noteOn(byteNota, (int) (Volúmen * 128));
+        Reproducir(Canal, byteNota, 1);
+    }
+
+    public void Reproducir(int Canal, int byteNota, float volumen) {
+        CanalSonido[Canal].noteOn(byteNota, (int) (volumen * Volúmen * 128));
     }
 
     public void toSound(int Canal, int byteNota, float volumen) {
