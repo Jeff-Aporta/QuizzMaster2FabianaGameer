@@ -159,7 +159,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 + "puntaje INT,\n"
                 + "total INT\n"
                 + ");";
-        try {
+        try { 
             Statement stmt = conexion.createStatement();
             stmt.executeUpdate(sqlPreguntas);
             stmt.executeUpdate(sqlResultados);
