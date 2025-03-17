@@ -271,7 +271,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         resultados.append("<li>Correctas: " + contadorCorrectas + "</li>");
         resultados.append("<li>Incorrectas: " + (contadorRealizadas - contadorCorrectas) + "</li>");
         resultados.append("<li>Total: " + contadorRealizadas + "</li>");
-        resultados.append("</ol></body></html>"); 
+        resultados.append("</ol></body></html>");
 
         JOptionPane.showMessageDialog(null,
                 resultados.toString(),
@@ -373,7 +373,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 String id = rs.getString("identificacion");
                 int puntaje = rs.getInt("puntaje");
                 int total = rs.getInt("total");
-                resultados.append("<li>" + id + ": " + puntaje + " / " + total + "</li>");
+                resultados.append("<li>" + id + ": Correctas " + puntaje + ", Incorrectas " + (total - puntaje)
+                        + ", Total " + total + "</li>");
             }
             resultados.append("</ol></body></html>");
             JOptionPane.showMessageDialog(null, resultados.toString(), "Lista de Resultados",
