@@ -271,7 +271,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         resultados.append("<li>Correctas: " + contadorCorrectas + "</li>");
         resultados.append("<li>Incorrectas: " + (contadorRealizadas - contadorCorrectas) + "</li>");
         resultados.append("<li>Total: " + contadorRealizadas + "</li>");
-        resultados.append("</ol></body></html>");
+        resultados.append("</ol></body></html>"); 
 
         JOptionPane.showMessageDialog(null,
                 resultados.toString(),
