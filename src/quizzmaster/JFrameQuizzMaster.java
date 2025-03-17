@@ -159,7 +159,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 + "puntaje INT,\n"
                 + "total INT\n"
                 + ");";
-        try { 
+        try {
             Statement stmt = conexion.createStatement();
             stmt.executeUpdate(sqlPreguntas);
             stmt.executeUpdate(sqlResultados);
@@ -200,7 +200,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 opcionCorrecta = opcionCorrecta_;
 
                 // Crear un arreglo con la opción correcta y los distractores
-                String[] opciones = {opcionCorrecta_, distractor1, distractor2, distractor3};
+                String[] opciones = { opcionCorrecta_, distractor1, distractor2, distractor3 };
 
                 // Mezclar el arreglo usando el algoritmo de Fisher-Yates
                 for (int i = opciones.length - 1; i > 0; i--) {
@@ -265,8 +265,16 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
 
+        StringBuilder resultados = new StringBuilder();
+
+        resultados.append("<html><body><h2>Resultados:</h2><ol>");
+        resultados.append("<li>Correctas: " + contadorCorrectas + "</li>");
+        resultados.append("<li>Incorrectas: " + (contadorRealizadas - contadorCorrectas) + "</li>");
+        resultados.append("<li>Total: " + contadorRealizadas + "</li>");
+        resultados.append("</ol></body></html>");
+
         JOptionPane.showMessageDialog(null,
-                "Has terminado todas las preguntas. Tu puntaje es: " + contadorCorrectas + "/" + contadorRealizadas,
+                resultados.toString(),
                 "Fin del Quiz", JOptionPane.INFORMATION_MESSAGE);
         cambiarVista(VISTA_INICIO);
     }
@@ -457,7 +465,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         String distractor4_2 = jTextField21.getText();
         String distractor4_3 = jTextField22.getText();
 
-        String sql = "INSERT INTO preguntas (id, pregunta, opcion_correcta, distractor1, distractor2, distractor3) VALUES (?, ?, ?, ?, ?, ?);";
+        String sql = "INSERT INTO preguntas (id, pregunta, opcion_correcta, distractor1, distractor2, distractor3) VALUES (?, ?, ?, ?, ?, ?)";
+        sql += "ON DUPLICATE KEY UPDATE pregunta = ?, opcion_correcta = ?, distractor1 = ?, distractor2 = ?, distractor3 = ?";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
             // Inserción para la primera pregunta
@@ -467,6 +476,11 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             pstmt.setString(4, distractor1_1);
             pstmt.setString(5, distractor1_2);
             pstmt.setString(6, distractor1_3);
+            pstmt.setString(7, pregunta1);
+            pstmt.setString(8, opcionCorrecta1);
+            pstmt.setString(9, distractor1_1);
+            pstmt.setString(10, distractor1_2);
+            pstmt.setString(11, distractor1_3);
             pstmt.executeUpdate();
             // Inserción para la segunda pregunta
             pstmt.setInt(1, id2);
@@ -475,6 +489,11 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             pstmt.setString(4, distractor2_1);
             pstmt.setString(5, distractor2_2);
             pstmt.setString(6, distractor2_3);
+            pstmt.setString(7, pregunta2);
+            pstmt.setString(8, opcionCorrecta2);
+            pstmt.setString(9, distractor2_1);
+            pstmt.setString(10, distractor2_2);
+            pstmt.setString(11, distractor2_3);
             pstmt.executeUpdate();
             // Inserción para la tercera pregunta
             pstmt.setInt(1, id3);
@@ -483,6 +502,11 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             pstmt.setString(4, distractor3_1);
             pstmt.setString(5, distractor3_2);
             pstmt.setString(6, distractor3_3);
+            pstmt.setString(7, pregunta3);
+            pstmt.setString(8, opcionCorrecta3);
+            pstmt.setString(9, distractor3_1);
+            pstmt.setString(10, distractor3_2);
+            pstmt.setString(11, distractor3_3);
             pstmt.executeUpdate();
             // Inserción para la cuarta pregunta
             pstmt.setInt(1, id4);
@@ -491,6 +515,11 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             pstmt.setString(4, distractor4_1);
             pstmt.setString(5, distractor4_2);
             pstmt.setString(6, distractor4_3);
+            pstmt.setString(7, pregunta4);
+            pstmt.setString(8, opcionCorrecta4);
+            pstmt.setString(9, distractor4_1);
+            pstmt.setString(10, distractor4_2);
+            pstmt.setString(11, distractor4_3);
             pstmt.executeUpdate();
             JOptionPane.showMessageDialog(null, "Preguntas guardadas exitosamente!");
         } catch (SQLException e) {
@@ -562,7 +591,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
 
     // <editor-fold defaultstate="collapsed" desc="Generated
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -700,19 +730,19 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap(311, Short.MAX_VALUE)
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(312, Short.MAX_VALUE))
-        );
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap(311, Short.MAX_VALUE)
+                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 271,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(312, Short.MAX_VALUE)));
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap(137, Short.MAX_VALUE)
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 237, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(138, Short.MAX_VALUE))
-        );
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap(137, Short.MAX_VALUE)
+                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 237,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(138, Short.MAX_VALUE)));
 
         jTabbedPane1.addTab("inicio", jPanel1);
 
@@ -729,15 +759,14 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 299, Short.MAX_VALUE)
-        );
+                jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 299, Short.MAX_VALUE));
         jPanel5Layout.setVerticalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel5Layout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
+                jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel5Layout.createSequentialGroup()
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 30,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)));
 
         jPanel4.add(jPanel5);
 
@@ -770,19 +799,19 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addContainerGap(297, Short.MAX_VALUE)
-                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 299, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(298, Short.MAX_VALUE))
-        );
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addContainerGap(297, Short.MAX_VALUE)
+                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 299,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(298, Short.MAX_VALUE)));
         jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                .addContainerGap(78, Short.MAX_VALUE)
-                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 356, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(78, Short.MAX_VALUE))
-        );
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                                .addContainerGap(78, Short.MAX_VALUE)
+                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 356,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(78, Short.MAX_VALUE)));
 
         jTabbedPane1.addTab("Inicio de sesión", jPanel3);
 
@@ -839,47 +868,50 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
         jPanel8Layout.setHorizontalGroup(
-            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel8Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, 138, Short.MAX_VALUE)
-                    .addComponent(jLabel30, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel31, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
-        );
+                jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, 138,
+                                                Short.MAX_VALUE)
+                                        .addComponent(jLabel30, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(jLabel31, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addContainerGap()));
         jPanel8Layout.setVerticalGroup(
-            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel8Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jButton5)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jLabel30)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel31)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
+                jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jButton5)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jLabel30)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jLabel31)
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
         jPanel6Layout.setHorizontalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 54, Short.MAX_VALUE)
-                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 647, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(43, Short.MAX_VALUE))
-        );
+                jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 54, Short.MAX_VALUE)
+                                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 647,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(43, Short.MAX_VALUE)));
         jPanel6Layout.setVerticalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addContainerGap(78, Short.MAX_VALUE)
-                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 356, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(78, Short.MAX_VALUE))
-        );
+                jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addContainerGap())
+                        .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addContainerGap(78, Short.MAX_VALUE)
+                                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 356,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(78, Short.MAX_VALUE)));
 
         jTabbedPane1.addTab("Resolver Quizz", jPanel6);
 
@@ -1141,9 +1173,9 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
+    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton11ActionPerformed
         cambiarVista(VISTA_INICIO);
-    }//GEN-LAST:event_jButton11ActionPerformed
+    }// GEN-LAST:event_jButton11ActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
