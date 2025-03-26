@@ -3,25 +3,28 @@ package quizzmaster;
 import Tools.callback.*;
 
 import java.awt.Color;
-import java.awt.Cursor;
+import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.KeyboardFocusManager;
-import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
-import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Random;
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import java.net.URL;
+
 import static quizzmaster.NimbusModificado.*;
 import sounds.MIDI_parser;
 import sounds.Play_notes;
@@ -54,6 +57,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     public static final int VISTA_QUIZZ = 2;
     public static final int VISTA_PANEL_ADMN = 3;
 
+    public static int contador_tiempo = -1;
+
     // Variables de la conexión a la base de datos
     public static Connection conexion;
 
@@ -82,9 +87,24 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         new JFrameQuizzMaster();
     }
 
+    public void setOpaqueRecursively(JComponent component, boolean value) {
+        // Si es un panel pero no un JTabbedPane, hacerlo transparente
+        if (component instanceof JPanel && !(component instanceof JTabbedPane)) {
+            ((JPanel) component).setOpaque(value);
+        }
+        
+        // Recursivamente procesar todos los componentes hijos
+        for (Component c : component.getComponents()) {
+            if (c instanceof JComponent) {
+                setOpaqueRecursively((JComponent) c, value);
+            }
+        }
+    }
+
     public JFrameQuizzMaster() {
         crear_tablas();
         initComponents();
+        setOpaqueRecursively((JComponent)getContentPane(), false);
         setExtendedState(MAXIMIZED_BOTH);
 
         try {
@@ -546,6 +566,40 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         return crearBoton(color, 0);
     }
 
+    public static BufferedImage imagen = null;
+
+    private JPanel crearPanel() {
+        if (imagen == null) {
+            try {
+                Image img = ImageIO.read(new URL("https://i.ibb.co/XxtK2wk8/bg-1.jpg"));
+                imagen = new BufferedImage(
+                        img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB
+                );
+                Graphics2D g2 = (Graphics2D) imagen.getGraphics();
+                g2.drawImage(img, 0, 0, null);
+                g2.setColor(new Color(0,0,0,100));
+                g2.fillRect(0, 0, imagen.getWidth(null), imagen.getHeight(null));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                int w = this.getWidth();
+                int h = this.getHeight();
+                float escala = Math.max((float) w / imagen.getWidth(null), (float) h / imagen.getHeight(null));
+                int new_w = (int) (imagen.getWidth(null) * escala);
+                int new_h = (int) (imagen.getHeight(null) * escala);
+                int x = (w - new_w) / 2;
+                int y = (h - new_h) / 2;
+                g.drawImage(imagen, x, y, new_w, new_h, null);
+            }
+        };
+        return panel;
+    }
+
     private JButton crearBoton(Color color, int dx) {
         JButton boton = new JButton() {
             boolean hover = false;
@@ -575,7 +629,7 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             @Override
             public void paint(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
-                g2.setColor(color);
+                g2.setColor(new Color(255, 128, 0, color.getAlpha()));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 if (hover) {
                     g2.setColor(new Color(255, 255, 255, 100));
@@ -593,17 +647,18 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
-    // Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
+        jPanel1 = crearPanel();
         jPanel2 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jButton1 = crearBoton(new Color(30, 144, 255));
         jLabel2 = new javax.swing.JLabel();
         jButton3 = crearBoton(new Color(30, 144, 255));
-        jPanel3 = new javax.swing.JPanel();
+        jPanel3 = crearPanel();
         jPanel4 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
         jButton4 = crearBoton(new Color(30, 144, 255, 0));
@@ -614,23 +669,24 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jLabel7 = new javax.swing.JLabel();
         jPasswordField1 = new javax.swing.JPasswordField();
         jButton6 = crearBoton(new Color(30, 144, 255));
-        jPanel6 = new javax.swing.JPanel();
+        jPanel6 = crearPanel();
         jPanel7 = new javax.swing.JPanel();
         jLabel9 = new javax.swing.JLabel();
         jButton7 = crearBoton(new Color(30, 144, 255));
         jButton8 = crearBoton(new Color(30, 144, 255));
         jButton9 = crearBoton(new Color(30, 144, 255));
         jButton10 = crearBoton(new Color(30, 144, 255));
-        jPanel8 = new javax.swing.JPanel();
+        jPanel8 = crearPanel();
         jButton5 = crearBoton(new Color(30, 144, 255));
         jLabel30 = new javax.swing.JLabel();
         jLabel31 = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jPanel10 = new javax.swing.JPanel();
+        jPanel10 = crearPanel();
         jPanel11 = new javax.swing.JPanel();
         jButton11 = crearBoton(new Color(30, 144, 255));
         jButton16 = crearBoton(new Color(30, 144, 255));
         jButton2 = crearBoton(new Color(30, 144, 255));
+        jButton12 = crearBoton(new Color(30, 144, 255));
         jPanel9 = new javax.swing.JPanel();
         jPanel12 = new javax.swing.JPanel();
         jLabel8 = new javax.swing.JLabel();
@@ -731,19 +787,19 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addContainerGap(311, Short.MAX_VALUE)
-                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 271,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(312, Short.MAX_VALUE)));
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap(311, Short.MAX_VALUE)
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(312, Short.MAX_VALUE))
+        );
         jPanel1Layout.setVerticalGroup(
-                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addContainerGap(137, Short.MAX_VALUE)
-                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 237,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(138, Short.MAX_VALUE)));
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap(137, Short.MAX_VALUE)
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 237, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(138, Short.MAX_VALUE))
+        );
 
         jTabbedPane1.addTab("inicio", jPanel1);
 
@@ -760,14 +816,15 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
-                jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 299, Short.MAX_VALUE));
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 299, Short.MAX_VALUE)
+        );
         jPanel5Layout.setVerticalGroup(
-                jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel5Layout.createSequentialGroup()
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 30,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)));
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel5Layout.createSequentialGroup()
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
+        );
 
         jPanel4.add(jPanel5);
 
@@ -800,19 +857,19 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
-                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addContainerGap(297, Short.MAX_VALUE)
-                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 299,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(298, Short.MAX_VALUE)));
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addContainerGap(297, Short.MAX_VALUE)
+                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 299, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(298, Short.MAX_VALUE))
+        );
         jPanel3Layout.setVerticalGroup(
-                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                                .addContainerGap(78, Short.MAX_VALUE)
-                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 356,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(78, Short.MAX_VALUE)));
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap(78, Short.MAX_VALUE)
+                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, 356, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(78, Short.MAX_VALUE))
+        );
 
         jTabbedPane1.addTab("Inicio de sesión", jPanel3);
 
@@ -869,50 +926,47 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
         jPanel8Layout.setHorizontalGroup(
-                jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel8Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, 138,
-                                                Short.MAX_VALUE)
-                                        .addComponent(jLabel30, javax.swing.GroupLayout.DEFAULT_SIZE,
-                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(jLabel31, javax.swing.GroupLayout.DEFAULT_SIZE,
-                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                .addContainerGap()));
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, 138, Short.MAX_VALUE)
+                    .addComponent(jLabel30, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel31, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
         jPanel8Layout.setVerticalGroup(
-                jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel8Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(jButton5)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jLabel30)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jLabel31)
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jButton5)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel30)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel31)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
         jPanel6Layout.setHorizontalGroup(
-                jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel6Layout.createSequentialGroup()
-                                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE,
-                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 54, Short.MAX_VALUE)
-                                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 647,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(43, Short.MAX_VALUE)));
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 54, Short.MAX_VALUE)
+                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 647, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(43, Short.MAX_VALUE))
+        );
         jPanel6Layout.setVerticalGroup(
-                jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel6Layout.createSequentialGroup()
-                                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE,
-                                        javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addContainerGap())
-                        .addGroup(jPanel6Layout.createSequentialGroup()
-                                .addContainerGap(78, Short.MAX_VALUE)
-                                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 356,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(78, Short.MAX_VALUE)));
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addContainerGap(78, Short.MAX_VALUE)
+                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, 356, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(78, Short.MAX_VALUE))
+        );
 
         jTabbedPane1.addTab("Resolver Quizz", jPanel6);
 
@@ -946,6 +1000,15 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             }
         });
         jPanel11.add(jButton2);
+
+        jButton12.setFont(new java.awt.Font("sansserif", 1, 18)); // NOI18N
+        jButton12.setText("PDF");
+        jButton12.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton12ActionPerformed(evt);
+            }
+        });
+        jPanel11.add(jButton12);
 
         jPanel10.add(jPanel11);
 
@@ -1174,14 +1237,20 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton12ActionPerformed
+        // TODO add your handling code here:
+    }// GEN-LAST:event_jButton12ActionPerformed
+
     private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton11ActionPerformed
         cambiarVista(VISTA_INICIO);
+        auth = false; // Cierra sesión
     }// GEN-LAST:event_jButton11ActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton10;
     private javax.swing.JButton jButton11;
+    private javax.swing.JButton jButton12;
     private javax.swing.JButton jButton16;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
