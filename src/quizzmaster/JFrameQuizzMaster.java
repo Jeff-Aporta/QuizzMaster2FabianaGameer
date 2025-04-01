@@ -17,6 +17,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -47,15 +53,20 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     // Variables para el estado del quiz
     public static int index_quest = 1;
     static String identificacion_usuario = "";
+    static String password_usuario = ""; // Nueva variable para almacenar la contraseña
     static String opcionCorrecta = "";
     static int contadorCorrectas = 0;
     static int contadorRealizadas = 0;
+    
+    // Variable para almacenar la asignatura seleccionada
+    static String asignaturaSeleccionada = "";
 
     // Variables de la interfaz
     public static final int VISTA_INICIO = 0;
     public static final int VISTA_INICIO_SESION = 1;
     public static final int VISTA_QUIZZ = 2;
     public static final int VISTA_PANEL_ADMN = 3;
+    public static final int VISTA_PARTICIPANTES = 4;
 
     public static int contador_tiempo = -1;
 
@@ -141,6 +152,9 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         setTimeout(() -> {
             MIDI_parser.midi_pararell("main-theme").fade_value(0);
         }, 5000);
+        
+        // Cargar los participantes existentes
+        cargarParticipantes();
     }
 
     // Métodos de la interfaz
@@ -171,7 +185,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 + "opcion_correcta VARCHAR(255),\n"
                 + "distractor1 VARCHAR(255),\n"
                 + "distractor2 VARCHAR(255),\n"
-                + "distractor3 VARCHAR(255)\n"
+                + "distractor3 VARCHAR(255),\n"
+                + "asignatura VARCHAR(50) DEFAULT 'Asignatura 1'\n"
                 + ");";
         String sqlResultados = "CREATE TABLE IF NOT EXISTS resultados (\n"
                 + "id INT AUTO_INCREMENT PRIMARY KEY,\n"
@@ -179,10 +194,23 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 + "puntaje INT,\n"
                 + "total INT\n"
                 + ");";
+        String sqlParticipantes = "CREATE TABLE IF NOT EXISTS participantes (\n"
+                + "id INT PRIMARY KEY,\n"
+                + "identificacion VARCHAR(255) NOT NULL,\n"
+                + "password VARCHAR(255) NOT NULL\n"
+                + ");";
+        String sqlAsignaturasCompletadas = "CREATE TABLE IF NOT EXISTS asignaturas_completadas (\n"
+                + "id INT AUTO_INCREMENT PRIMARY KEY,\n"
+                + "identificacion VARCHAR(255) NOT NULL,\n"
+                + "asignatura VARCHAR(50) NOT NULL,\n"
+                + "UNIQUE KEY unique_participante_asignatura (identificacion, asignatura)\n"
+                + ");";
         try {
             Statement stmt = conexion.createStatement();
             stmt.executeUpdate(sqlPreguntas);
             stmt.executeUpdate(sqlResultados);
+            stmt.executeUpdate(sqlParticipantes);
+            stmt.executeUpdate(sqlAsignaturasCompletadas);
         } catch (SQLException e) {
             e.printStackTrace();
             notas.Reproducir(2, "2SI", 200, -1, 0.6f);
@@ -198,17 +226,46 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         index_quest++;
     }
 
-    private void cargarPreguntaPorId(int id) {
+    private void cargarPreguntaPorId(int contador) {
         // Verificar si se han terminado las preguntas
-        if (id > 4) { // Asumiendo que hay 4 preguntas
+        int d = 0;
+        switch (asignaturaSeleccionada) {
+            case "Asignatura 1":
+                d = 1;
+                break;
+            case "Asignatura 2":
+                d = 2;
+                break;
+            case "Asignatura 3":
+                d = 3;
+                break;
+            case "Asignatura 4":
+                d = 4;
+                break;
+            case "Asignatura 5":
+                d = 5;
+                break;
+        }
+        int index = contador + d*10;
+        int cindex = index-d*10;
+        if (cindex > 4) { // Asumiendo que hay 4 preguntas
             terminar_quiz();
             return;
         }
+        
+        // Si no hay asignatura seleccionada, usar la predeterminada
+        if (asignaturaSeleccionada == null || asignaturaSeleccionada.isEmpty()) {
+            asignaturaSeleccionada = "Asignatura 1";
+        }
+
+
+        
         // Cargar la pregunta correspondiente desde la base de datos
-        String sql = "SELECT pregunta, opcion_correcta, distractor1, distractor2, distractor3 FROM preguntas WHERE id = ?";
+        String sql = "SELECT pregunta, opcion_correcta, distractor1, distractor2, distractor3 FROM preguntas WHERE id = ? AND asignatura = ?";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
-            pstmt.setInt(1, id);
+            pstmt.setInt(1, index);
+            pstmt.setString(2, asignaturaSeleccionada);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 String pregunta = rs.getString("pregunta");
@@ -279,6 +336,14 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
             pstmt.setInt(2, contadorCorrectas);
             pstmt.setInt(3, contadorRealizadas);
             pstmt.executeUpdate();
+            
+            // Registrar que el usuario ha completado esta asignatura
+            String sqlCompletado = "INSERT INTO asignaturas_completadas (identificacion, asignatura) VALUES (?, ?)";
+            PreparedStatement pstmtCompletado = conexion.prepareStatement(sqlCompletado);
+            pstmtCompletado.setString(1, identificacion_usuario);
+            pstmtCompletado.setString(2, asignaturaSeleccionada);
+            pstmtCompletado.executeUpdate();
+            
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error al guardar el puntaje: " + e.getMessage(), "Error",
@@ -300,9 +365,34 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     }
 
     private void actualizarPreguntasYOpciones() {
-        String sql = "SELECT id, pregunta, opcion_correcta, distractor1, distractor2, distractor3 FROM preguntas ORDER BY id;";
+        // Si no hay asignatura seleccionada, establecer una por defecto
+        System.out.println(asignaturaSeleccionada);
+        if (asignaturaSeleccionada == null || asignaturaSeleccionada.isEmpty()) {
+            asignaturaSeleccionada = "Asignatura 1";
+        }
+        int d = 0;
+        switch (asignaturaSeleccionada) {
+            case "Asignatura 1":
+                d = 1;
+                break;
+            case "Asignatura 2":
+                d = 2;
+                break;
+            case "Asignatura 3":
+                d = 3;
+                break;
+            case "Asignatura 4":
+                d = 4;
+                break;
+            case "Asignatura 5":
+                d = 5;
+                break;
+        }
+        
+        String sql = "SELECT id, pregunta, opcion_correcta, distractor1, distractor2, distractor3 FROM preguntas WHERE asignatura = ? ORDER BY id;";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
+            pstmt.setString(1, asignaturaSeleccionada);
             ResultSet rs = pstmt.executeQuery();
             int i = 0;
             jTextField3.setText("");
@@ -334,7 +424,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                 String distractor3 = rs.getString("distractor3");
 
                 // Asignar preguntas y opciones a índices fijos
-                switch (id) {
+                final int index = id - d * 10;
+                switch (index) {
                     case 1:
                         jLabel8.setText("Pregunta 1");
                         jTextField3.setText(pregunta);
@@ -377,6 +468,79 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         }
     }
 
+    private void cargarParticipantes() {
+        // Limpiar todos los campos de texto
+        jTextField2.setText("");
+        jTextField23.setText("");
+        jTextField24.setText("");
+        jTextField25.setText("");
+        jTextField26.setText("");
+        jTextField27.setText("");
+        jTextField28.setText("");
+        jTextField29.setText("");
+        jTextField30.setText("");
+        jTextField31.setText("");
+        jTextField32.setText("");
+        jTextField33.setText("");
+        jTextField34.setText("");
+        jTextField35.setText("");
+        jTextField36.setText("");
+        jTextField37.setText("");
+        
+        // Cargar participantes desde la base de datos
+        String sql = "SELECT id, identificacion, password FROM participantes ORDER BY id";
+        try {
+            PreparedStatement pstmt = conexion.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String identificacion = rs.getString("identificacion");
+                String password = rs.getString("password");
+                
+                // Asignar a los campos correspondientes según el ID
+                switch (id) {
+                    case 1:
+                        jTextField2.setText(identificacion);
+                        jTextField23.setText(password);
+                        break;
+                    case 2:
+                        jTextField24.setText(identificacion);
+                        jTextField25.setText(password);
+                        break;
+                    case 3:
+                        jTextField26.setText(identificacion);
+                        jTextField27.setText(password);
+                        break;
+                    case 4:
+                        jTextField28.setText(identificacion);
+                        jTextField29.setText(password);
+                        break;
+                    case 5:
+                        jTextField30.setText(identificacion);
+                        jTextField31.setText(password);
+                        break;
+                    case 6:
+                        jTextField32.setText(identificacion);
+                        jTextField33.setText(password);
+                        break;
+                    case 7:
+                        jTextField34.setText(identificacion);
+                        jTextField35.setText(password);
+                        break;
+                    case 8:
+                        jTextField36.setText(identificacion);
+                        jTextField37.setText(password);
+                        break;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al cargar los participantes: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     // Métodos de eventos
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {
         cambiarVista(VISTA_INICIO_SESION);
@@ -409,12 +573,129 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {
         identificacion_usuario = JOptionPane.showInputDialog(null, "Ingrese su identificación:");
         if (identificacion_usuario != null && identificacion_usuario.length() >= 3) {
-            // Aquí puedes cambiar el panel a la vista de resolver
-            cambiarVista(VISTA_QUIZZ);
+            // Solicitar contraseña
+            password_usuario = JOptionPane.showInputDialog(null, "Ingrese su contraseña:");
+            if (password_usuario != null && !password_usuario.isEmpty()) {
+                // Verificar las credenciales en la base de datos
+                String sql = "SELECT * FROM participantes WHERE identificacion = ? AND password = ?";
+                try {
+                    PreparedStatement pstmt = conexion.prepareStatement(sql);
+                    pstmt.setString(1, identificacion_usuario);
+                    pstmt.setString(2, password_usuario);
+                    ResultSet rs = pstmt.executeQuery();
+                    
+                    if (rs.next()) {
+                        // Credenciales correctas
+                        JOptionPane.showMessageDialog(null, "¡Bienvenido " + identificacion_usuario + "!", "Inicio de sesión exitoso", JOptionPane.INFORMATION_MESSAGE);
+                        
+                        // Solicitar el número de asignatura
+                        solicitarAsignatura();
+                    } else {
+                        // Credenciales incorrectas
+                        JOptionPane.showMessageDialog(null, "Identificación o contraseña incorrectas", "Error de autenticación", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error al verificar credenciales: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "La contraseña no puede estar vacía.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         } else {
             JOptionPane.showMessageDialog(null,
                     "La identificación no puede estar vacía y debe tener al menos 3 caracteres.", "Error",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void solicitarAsignatura() {
+        // Obtener las asignaturas disponibles (que no hayan sido completadas por el usuario)
+        try {
+            // Primero, obtener todas las asignaturas disponibles
+            Set<String> todasLasAsignaturas = new HashSet<>();
+            String sqlAsignaturas = "SELECT DISTINCT asignatura FROM preguntas";
+            PreparedStatement pstmtAsignaturas = conexion.prepareStatement(sqlAsignaturas);
+            ResultSet rsAsignaturas = pstmtAsignaturas.executeQuery();
+            
+            while (rsAsignaturas.next()) {
+                todasLasAsignaturas.add(rsAsignaturas.getString("asignatura"));
+            }
+            
+            // Luego, obtener las asignaturas ya completadas por el usuario
+            Set<String> asignaturasCompletadas = new HashSet<>();
+            String sqlCompletadas = "SELECT asignatura FROM asignaturas_completadas WHERE identificacion = ?";
+            PreparedStatement pstmtCompletadas = conexion.prepareStatement(sqlCompletadas);
+            pstmtCompletadas.setString(1, identificacion_usuario);
+            ResultSet rsCompletadas = pstmtCompletadas.executeQuery();
+            
+            while (rsCompletadas.next()) {
+                asignaturasCompletadas.add(rsCompletadas.getString("asignatura"));
+            }
+            
+            // Filtrar para obtener solo las asignaturas no completadas
+            todasLasAsignaturas.removeAll(asignaturasCompletadas);
+            
+            // Verificar si hay asignaturas disponibles para el usuario
+            if (todasLasAsignaturas.isEmpty()) {
+                // El usuario ya completó todas las asignaturas
+                JOptionPane.showMessageDialog(null, 
+                        "Ya has completado todas las asignaturas disponibles.", 
+                        "No hay asignaturas disponibles", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                cambiarVista(VISTA_INICIO);
+                return;
+            }
+            
+            // Crear un arreglo ordenado de asignaturas disponibles
+            List<String> asignaturasDisponibles = new ArrayList<>(todasLasAsignaturas);
+            Collections.sort(asignaturasDisponibles);
+            
+            // Construir el mensaje para mostrar asignaturas disponibles
+            StringBuilder mensaje = new StringBuilder("Seleccione el número de la asignatura que desea realizar:\n\n");
+            for (int i = 0; i < asignaturasDisponibles.size(); i++) {
+                mensaje.append((i + 1)).append(". ").append(asignaturasDisponibles.get(i)).append("\n");
+            }
+            
+            // Solicitar al usuario que seleccione una asignatura
+            String seleccion = JOptionPane.showInputDialog(null, mensaje.toString());
+            
+            if (seleccion != null && !seleccion.isEmpty()) {
+                try {
+                    int opcion = Integer.parseInt(seleccion);
+                    if (opcion >= 1 && opcion <= asignaturasDisponibles.size()) {
+                        // Asignatura válida seleccionada
+                        asignaturaSeleccionada = asignaturasDisponibles.get(opcion - 1);
+                        
+                        // Iniciar el quiz con la asignatura seleccionada
+                        cambiarVista(VISTA_QUIZZ);
+                    } else {
+                        JOptionPane.showMessageDialog(null, 
+                                "Por favor, seleccione un número de asignatura válido.", 
+                                "Selección inválida", 
+                                JOptionPane.ERROR_MESSAGE);
+                        solicitarAsignatura(); // Volver a solicitar asignatura
+                    }
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, 
+                            "Por favor, ingrese un número válido.", 
+                            "Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                    solicitarAsignatura(); // Volver a solicitar asignatura
+                }
+            } else {
+                // Usuario canceló la selección, volver a la pantalla inicial
+                cambiarVista(VISTA_INICIO);
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                    "Error al obtener asignaturas: " + e.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            cambiarVista(VISTA_INICIO);
         }
     }
 
@@ -424,7 +705,15 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     }
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {
-        terminar_quiz();
+        // Reiniciar contador en cada nuevo quizz
+        contadorCorrectas = 0;
+        contadorRealizadas = 0;
+        index_quest = 1;
+        jLabel30.setText("Correctas: 0");
+        jLabel31.setText("Realizadas: 0");
+        
+        // Cargar primera pregunta según la asignatura seleccionada
+        cargarPreguntaPorId(index_quest);
     }
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {
@@ -462,6 +751,30 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         int id3 = 3;
         int id4 = 4;
 
+        // Si no hay asignatura seleccionada, usar la predeterminada
+        if (asignaturaSeleccionada == null || asignaturaSeleccionada.isEmpty()) {
+            asignaturaSeleccionada = "Asignatura 1";
+        }
+
+        int d = 0;
+        switch (asignaturaSeleccionada) {
+            case "Asignatura 1":
+                d = 1;
+                break;
+            case "Asignatura 2":
+                d = 2;
+                break;
+            case "Asignatura 3":
+                d = 3;
+                break;
+            case "Asignatura 4":
+                d = 4;
+                break;
+            case "Asignatura 5":
+                d = 5;
+                break;
+        }
+
         String pregunta1 = jTextField3.getText();
         String opcionCorrecta1 = jTextField4.getText();
         String distractor1_1 = jTextField5.getText();
@@ -486,61 +799,69 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         String distractor4_2 = jTextField21.getText();
         String distractor4_3 = jTextField22.getText();
 
-        String sql = "INSERT INTO preguntas (id, pregunta, opcion_correcta, distractor1, distractor2, distractor3) VALUES (?, ?, ?, ?, ?, ?)";
-        sql += "ON DUPLICATE KEY UPDATE pregunta = ?, opcion_correcta = ?, distractor1 = ?, distractor2 = ?, distractor3 = ?";
+        String sql = "INSERT INTO preguntas (id, pregunta, opcion_correcta, distractor1, distractor2, distractor3, asignatura) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        sql += " ON DUPLICATE KEY UPDATE pregunta = ?, opcion_correcta = ?, distractor1 = ?, distractor2 = ?, distractor3 = ?, asignatura = ?";
         try {
             PreparedStatement pstmt = conexion.prepareStatement(sql);
             // Inserción para la primera pregunta
-            pstmt.setInt(1, id1);
+            pstmt.setInt(1, id1+d*10);
             pstmt.setString(2, pregunta1);
             pstmt.setString(3, opcionCorrecta1);
             pstmt.setString(4, distractor1_1);
             pstmt.setString(5, distractor1_2);
             pstmt.setString(6, distractor1_3);
-            pstmt.setString(7, pregunta1);
-            pstmt.setString(8, opcionCorrecta1);
-            pstmt.setString(9, distractor1_1);
-            pstmt.setString(10, distractor1_2);
-            pstmt.setString(11, distractor1_3);
+            pstmt.setString(7, asignaturaSeleccionada);
+            pstmt.setString(8, pregunta1);
+            pstmt.setString(9, opcionCorrecta1);
+            pstmt.setString(10, distractor1_1);
+            pstmt.setString(11, distractor1_2);
+            pstmt.setString(12, distractor1_3);
+            pstmt.setString(13, asignaturaSeleccionada);
             pstmt.executeUpdate();
             // Inserción para la segunda pregunta
-            pstmt.setInt(1, id2);
+            pstmt.setInt(1, id2+d*10);
             pstmt.setString(2, pregunta2);
             pstmt.setString(3, opcionCorrecta2);
             pstmt.setString(4, distractor2_1);
             pstmt.setString(5, distractor2_2);
             pstmt.setString(6, distractor2_3);
-            pstmt.setString(7, pregunta2);
-            pstmt.setString(8, opcionCorrecta2);
-            pstmt.setString(9, distractor2_1);
-            pstmt.setString(10, distractor2_2);
-            pstmt.setString(11, distractor2_3);
+            pstmt.setString(7, asignaturaSeleccionada);
+            pstmt.setString(8, pregunta2);
+            pstmt.setString(9, opcionCorrecta2);
+            pstmt.setString(10, distractor2_1);
+            pstmt.setString(11, distractor2_2);
+            pstmt.setString(12, distractor2_3);
+            pstmt.setString(13, asignaturaSeleccionada);
             pstmt.executeUpdate();
             // Inserción para la tercera pregunta
-            pstmt.setInt(1, id3);
+            pstmt.setInt(1, id3+d*10);
             pstmt.setString(2, pregunta3);
             pstmt.setString(3, opcionCorrecta3);
             pstmt.setString(4, distractor3_1);
             pstmt.setString(5, distractor3_2);
             pstmt.setString(6, distractor3_3);
-            pstmt.setString(7, pregunta3);
-            pstmt.setString(8, opcionCorrecta3);
-            pstmt.setString(9, distractor3_1);
-            pstmt.setString(10, distractor3_2);
-            pstmt.setString(11, distractor3_3);
+            pstmt.setString(7, asignaturaSeleccionada);
+            pstmt.setString(8, pregunta3);
+            pstmt.setString(9, opcionCorrecta3);
+            pstmt.setString(10, distractor3_1);
+            pstmt.setString(11, distractor3_2);
+            pstmt.setString(12, distractor3_3);
+            pstmt.setString(13, asignaturaSeleccionada);
             pstmt.executeUpdate();
             // Inserción para la cuarta pregunta
-            pstmt.setInt(1, id4);
+            pstmt.setInt(1, id4 +d*10);
             pstmt.setString(2, pregunta4);
             pstmt.setString(3, opcionCorrecta4);
             pstmt.setString(4, distractor4_1);
             pstmt.setString(5, distractor4_2);
             pstmt.setString(6, distractor4_3);
-            pstmt.setString(7, pregunta4);
-            pstmt.setString(8, opcionCorrecta4);
-            pstmt.setString(9, distractor4_1);
-            pstmt.setString(10, distractor4_2);
-            pstmt.setString(11, distractor4_3);
+            pstmt.setString(7, asignaturaSeleccionada);
+            pstmt.setString(8, pregunta4);
+            pstmt.setString(9, opcionCorrecta4);
+            pstmt.setString(10, distractor4_1);
+            pstmt.setString(11, distractor4_2);
+            pstmt.setString(12, distractor4_3);
+            pstmt.setString(13, asignaturaSeleccionada);
             pstmt.executeUpdate();
             JOptionPane.showMessageDialog(null, "Preguntas guardadas exitosamente!");
         } catch (SQLException e) {
@@ -549,6 +870,132 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
     }// GEN-LAST:event_jButton16ActionPerformed
+
+    private void jButton14ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton14ActionPerformed
+        asignaturaSeleccionada = "Asignatura 1";
+        actualizarPreguntasYOpciones();
+    }//GEN-LAST:event_jButton14ActionPerformed
+
+    private void jButton15ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton15ActionPerformed
+        System.out.println("aaaaaaaaaa");
+        asignaturaSeleccionada = "Asignatura 2";
+        actualizarPreguntasYOpciones();
+        System.out.println("bbbbbbbbbb");
+    }//GEN-LAST:event_jButton15ActionPerformed
+
+    private void jButton17ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton17ActionPerformed
+        asignaturaSeleccionada = "Asignatura 3";
+        actualizarPreguntasYOpciones();
+    }//GEN-LAST:event_jButton17ActionPerformed
+
+    private void jButton18ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton18ActionPerformed
+        asignaturaSeleccionada = "Asignatura 4";
+        actualizarPreguntasYOpciones();
+    }//GEN-LAST:event_jButton18ActionPerformed
+
+    private void jButton19ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton19ActionPerformed
+        asignaturaSeleccionada = "Asignatura 5";
+        actualizarPreguntasYOpciones();
+    }//GEN-LAST:event_jButton19ActionPerformed
+
+    // Métodos de eventos
+    private void jButton20ActionPerformed(java.awt.event.ActionEvent evt) {                                          
+        // Guardar datos de participantes
+        try {
+            // Preparar la sentencia SQL
+            String sql = "INSERT INTO participantes (id, identificacion, password) VALUES (?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE identificacion = ?, password = ?";
+            PreparedStatement pstmt = conexion.prepareStatement(sql);
+            
+            // Guardar participante 1
+            if (!jTextField2.getText().isEmpty() && !jTextField23.getText().isEmpty()) {
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, jTextField2.getText());
+                pstmt.setString(3, jTextField23.getText());
+                pstmt.setString(4, jTextField2.getText());
+                pstmt.setString(5, jTextField23.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 2
+            if (!jTextField24.getText().isEmpty() && !jTextField25.getText().isEmpty()) {
+                pstmt.setInt(1, 2);
+                pstmt.setString(2, jTextField24.getText());
+                pstmt.setString(3, jTextField25.getText());
+                pstmt.setString(4, jTextField24.getText());
+                pstmt.setString(5, jTextField25.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 3
+            if (!jTextField26.getText().isEmpty() && !jTextField27.getText().isEmpty()) {
+                pstmt.setInt(1, 3);
+                pstmt.setString(2, jTextField26.getText());
+                pstmt.setString(3, jTextField27.getText());
+                pstmt.setString(4, jTextField26.getText());
+                pstmt.setString(5, jTextField27.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 4
+            if (!jTextField28.getText().isEmpty() && !jTextField29.getText().isEmpty()) {
+                pstmt.setInt(1, 4);
+                pstmt.setString(2, jTextField28.getText());
+                pstmt.setString(3, jTextField29.getText());
+                pstmt.setString(4, jTextField28.getText());
+                pstmt.setString(5, jTextField29.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 5
+            if (!jTextField30.getText().isEmpty() && !jTextField31.getText().isEmpty()) {
+                pstmt.setInt(1, 5);
+                pstmt.setString(2, jTextField30.getText());
+                pstmt.setString(3, jTextField31.getText());
+                pstmt.setString(4, jTextField30.getText());
+                pstmt.setString(5, jTextField31.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 6
+            if (!jTextField32.getText().isEmpty() && !jTextField33.getText().isEmpty()) {
+                pstmt.setInt(1, 6);
+                pstmt.setString(2, jTextField32.getText());
+                pstmt.setString(3, jTextField33.getText());
+                pstmt.setString(4, jTextField32.getText());
+                pstmt.setString(5, jTextField33.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 7
+            if (!jTextField34.getText().isEmpty() && !jTextField35.getText().isEmpty()) {
+                pstmt.setInt(1, 7);
+                pstmt.setString(2, jTextField34.getText());
+                pstmt.setString(3, jTextField35.getText());
+                pstmt.setString(4, jTextField34.getText());
+                pstmt.setString(5, jTextField35.getText());
+                pstmt.executeUpdate();
+            }
+            
+            // Guardar participante 8
+            if (!jTextField36.getText().isEmpty() && !jTextField37.getText().isEmpty()) {
+                pstmt.setInt(1, 8);
+                pstmt.setString(2, jTextField36.getText());
+                pstmt.setString(3, jTextField37.getText());
+                pstmt.setString(4, jTextField36.getText());
+                pstmt.setString(5, jTextField37.getText());
+                pstmt.executeUpdate();
+            }
+            
+            JOptionPane.showMessageDialog(null, "Participantes guardados exitosamente!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            cargarParticipantes(); // Método para cargar los participantes existentes en los campos
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al guardar los participantes: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+        cambiarVista(VISTA_PANEL_ADMN);
+    }
 
     // Métodos de utilidad
     public static void setTimeout(Simple c, int ms) {
@@ -643,8 +1090,6 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     }
 
     // Componentes de la interfaz
-    @SuppressWarnings("unchecked")
-
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
@@ -687,6 +1132,13 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jButton16 = crearBoton(new Color(30, 144, 255));
         jButton2 = crearBoton(new Color(30, 144, 255));
         jButton12 = crearBoton(new Color(30, 144, 255));
+        jPanel35 = new javax.swing.JPanel();
+        jButton14 = new javax.swing.JButton();
+        jButton15 = new javax.swing.JButton();
+        jButton17 = new javax.swing.JButton();
+        jButton18 = new javax.swing.JButton();
+        jButton19 = new javax.swing.JButton();
+        jButton13 = crearBoton(new Color(30, 144, 255));
         jPanel9 = new javax.swing.JPanel();
         jPanel12 = new javax.swing.JPanel();
         jLabel8 = new javax.swing.JLabel();
@@ -751,6 +1203,40 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
         jPanel34 = new javax.swing.JPanel();
         jLabel28 = new javax.swing.JLabel();
         jTextField22 = new javax.swing.JTextField();
+        jPanel36 = crearPanel();
+        jLabel4 = new javax.swing.JLabel();
+        jTextField2 = new javax.swing.JTextField();
+        jTextField23 = new javax.swing.JTextField();
+        jLabel29 = new javax.swing.JLabel();
+        jLabel32 = new javax.swing.JLabel();
+        jTextField24 = new javax.swing.JTextField();
+        jLabel33 = new javax.swing.JLabel();
+        jTextField25 = new javax.swing.JTextField();
+        jTextField26 = new javax.swing.JTextField();
+        jTextField27 = new javax.swing.JTextField();
+        jLabel34 = new javax.swing.JLabel();
+        jLabel35 = new javax.swing.JLabel();
+        jLabel36 = new javax.swing.JLabel();
+        jTextField28 = new javax.swing.JTextField();
+        jLabel37 = new javax.swing.JLabel();
+        jTextField29 = new javax.swing.JTextField();
+        jTextField30 = new javax.swing.JTextField();
+        jTextField31 = new javax.swing.JTextField();
+        jLabel38 = new javax.swing.JLabel();
+        jLabel39 = new javax.swing.JLabel();
+        jLabel40 = new javax.swing.JLabel();
+        jTextField32 = new javax.swing.JTextField();
+        jLabel41 = new javax.swing.JLabel();
+        jTextField33 = new javax.swing.JTextField();
+        jTextField34 = new javax.swing.JTextField();
+        jTextField35 = new javax.swing.JTextField();
+        jLabel42 = new javax.swing.JLabel();
+        jLabel43 = new javax.swing.JLabel();
+        jLabel44 = new javax.swing.JLabel();
+        jTextField36 = new javax.swing.JTextField();
+        jLabel45 = new javax.swing.JLabel();
+        jTextField37 = new javax.swing.JTextField();
+        jButton20 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new java.awt.GridLayout(1, 0));
@@ -1012,6 +1498,84 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
         jPanel10.add(jPanel11);
 
+        jButton14.setText("Asignatura 1");
+        jButton14.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton14ActionPerformed(evt);
+            }
+        });
+
+        jButton15.setText("Asignatura 2");
+        jButton15.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton15ActionPerformed(evt);
+            }
+        });
+
+        jButton17.setText("Asignatura 3");
+        jButton17.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton17ActionPerformed(evt);
+            }
+        });
+
+        jButton18.setText("Asignatura 4");
+        jButton18.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton18ActionPerformed(evt);
+            }
+        });
+
+        jButton19.setText("Asignatura 5");
+        jButton19.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton19ActionPerformed(evt);
+            }
+        });
+
+        jButton13.setFont(new java.awt.Font("sansserif", 1, 18)); // NOI18N
+        jButton13.setText("Participantes");
+        jButton13.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton13ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel35Layout = new javax.swing.GroupLayout(jPanel35);
+        jPanel35.setLayout(jPanel35Layout);
+        jPanel35Layout.setHorizontalGroup(
+            jPanel35Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel35Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jButton14)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton15)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton17)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jButton18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jButton19)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 215, Short.MAX_VALUE)
+                .addComponent(jButton13)
+                .addContainerGap())
+        );
+        jPanel35Layout.setVerticalGroup(
+            jPanel35Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel35Layout.createSequentialGroup()
+                .addGroup(jPanel35Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel35Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jButton14)
+                        .addComponent(jButton15)
+                        .addComponent(jButton17)
+                        .addComponent(jButton18)
+                        .addComponent(jButton19))
+                    .addComponent(jButton13, javax.swing.GroupLayout.PREFERRED_SIZE, 64, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(46, Short.MAX_VALUE))
+        );
+
+        jPanel10.add(jPanel35);
+
         jPanel9.setLayout(new java.awt.GridLayout(1, 0));
 
         jPanel12.setLayout(new java.awt.GridLayout(0, 1));
@@ -1232,27 +1796,211 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Panel admn", jScrollPane2);
 
+        jLabel4.setText("ID");
+
+        jLabel29.setText("contraseña");
+
+        jLabel32.setText("ID");
+
+        jLabel33.setText("contraseña");
+
+        jLabel34.setText("ID");
+
+        jLabel35.setText("contraseña");
+
+        jLabel36.setText("ID");
+
+        jLabel37.setText("contraseña");
+
+        jLabel38.setText("ID");
+
+        jLabel39.setText("contraseña");
+
+        jLabel40.setText("ID");
+
+        jLabel41.setText("contraseña");
+
+        jLabel42.setText("ID");
+
+        jLabel43.setText("contraseña");
+
+        jLabel44.setText("ID");
+
+        jLabel45.setText("contraseña");
+
+        jButton20.setText("Guardar");
+        jButton20.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton20ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel36Layout = new javax.swing.GroupLayout(jPanel36);
+        jPanel36.setLayout(jPanel36Layout);
+        jPanel36Layout.setHorizontalGroup(
+            jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel36Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jButton20)
+                    .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel4)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel29)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField23, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel32)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField24, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel33)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField25, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel36)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField28, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel37)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField29, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel34)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField26, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel35)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField27, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel40)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField32, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel41)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField33, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel38)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField30, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel39)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField31, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel44)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField36, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel45)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField37, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel36Layout.createSequentialGroup()
+                            .addComponent(jLabel42)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jTextField34, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(jLabel43)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jTextField35, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(484, Short.MAX_VALUE))
+        );
+        jPanel36Layout.setVerticalGroup(
+            jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel36Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel29)
+                    .addComponent(jTextField23, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel32)
+                    .addComponent(jTextField24, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel33)
+                    .addComponent(jTextField25, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel36)
+                    .addComponent(jTextField28, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel37)
+                    .addComponent(jTextField29, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel34)
+                    .addComponent(jTextField26, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel35)
+                    .addComponent(jTextField27, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel40)
+                    .addComponent(jTextField32, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel41)
+                    .addComponent(jTextField33, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel38)
+                    .addComponent(jTextField30, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel39)
+                    .addComponent(jTextField31, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel44)
+                    .addComponent(jTextField36, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel45)
+                    .addComponent(jTextField37, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel36Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel42)
+                    .addComponent(jTextField34, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel43)
+                    .addComponent(jTextField35, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jButton20)
+                .addContainerGap(200, Short.MAX_VALUE))
+        );
+
+        jTabbedPane1.addTab("Participantes", jPanel36);
+
         getContentPane().add(jTabbedPane1);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton13ActionPerformed
+        cambiarVista(VISTA_PARTICIPANTES);
+    }//GEN-LAST:event_jButton13ActionPerformed
+
     private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton12ActionPerformed
         // TODO add your handling code here:
     }// GEN-LAST:event_jButton12ActionPerformed
 
-    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton11ActionPerformed
+    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
         cambiarVista(VISTA_INICIO);
         auth = false; // Cierra sesión
-    }// GEN-LAST:event_jButton11ActionPerformed
+    }//GEN-LAST:event_jButton11ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton10;
     private javax.swing.JButton jButton11;
     private javax.swing.JButton jButton12;
+    private javax.swing.JButton jButton13;
+    private javax.swing.JButton jButton14;
+    private javax.swing.JButton jButton15;
     private javax.swing.JButton jButton16;
+    private javax.swing.JButton jButton17;
+    private javax.swing.JButton jButton18;
+    private javax.swing.JButton jButton19;
     private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton20;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
@@ -1281,9 +2029,25 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel26;
     private javax.swing.JLabel jLabel27;
     private javax.swing.JLabel jLabel28;
+    private javax.swing.JLabel jLabel29;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel30;
     private javax.swing.JLabel jLabel31;
+    private javax.swing.JLabel jLabel32;
+    private javax.swing.JLabel jLabel33;
+    private javax.swing.JLabel jLabel34;
+    private javax.swing.JLabel jLabel35;
+    private javax.swing.JLabel jLabel36;
+    private javax.swing.JLabel jLabel37;
+    private javax.swing.JLabel jLabel38;
+    private javax.swing.JLabel jLabel39;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel40;
+    private javax.swing.JLabel jLabel41;
+    private javax.swing.JLabel jLabel42;
+    private javax.swing.JLabel jLabel43;
+    private javax.swing.JLabel jLabel44;
+    private javax.swing.JLabel jLabel45;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
@@ -1317,6 +2081,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel32;
     private javax.swing.JPanel jPanel33;
     private javax.swing.JPanel jPanel34;
+    private javax.swing.JPanel jPanel35;
+    private javax.swing.JPanel jPanel36;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
@@ -1337,10 +2103,26 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField17;
     private javax.swing.JTextField jTextField18;
     private javax.swing.JTextField jTextField19;
+    private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField20;
     private javax.swing.JTextField jTextField21;
     private javax.swing.JTextField jTextField22;
+    private javax.swing.JTextField jTextField23;
+    private javax.swing.JTextField jTextField24;
+    private javax.swing.JTextField jTextField25;
+    private javax.swing.JTextField jTextField26;
+    private javax.swing.JTextField jTextField27;
+    private javax.swing.JTextField jTextField28;
+    private javax.swing.JTextField jTextField29;
     private javax.swing.JTextField jTextField3;
+    private javax.swing.JTextField jTextField30;
+    private javax.swing.JTextField jTextField31;
+    private javax.swing.JTextField jTextField32;
+    private javax.swing.JTextField jTextField33;
+    private javax.swing.JTextField jTextField34;
+    private javax.swing.JTextField jTextField35;
+    private javax.swing.JTextField jTextField36;
+    private javax.swing.JTextField jTextField37;
     private javax.swing.JTextField jTextField4;
     private javax.swing.JTextField jTextField5;
     private javax.swing.JTextField jTextField6;
