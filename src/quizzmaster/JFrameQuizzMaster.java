@@ -366,7 +366,6 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
 
     private void actualizarPreguntasYOpciones() {
         // Si no hay asignatura seleccionada, establecer una por defecto
-        System.out.println(asignaturaSeleccionada);
         if (asignaturaSeleccionada == null || asignaturaSeleccionada.isEmpty()) {
             asignaturaSeleccionada = "Asignatura 1";
         }
@@ -877,10 +876,8 @@ public class JFrameQuizzMaster extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton14ActionPerformed
 
     private void jButton15ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton15ActionPerformed
-        System.out.println("aaaaaaaaaa");
         asignaturaSeleccionada = "Asignatura 2";
         actualizarPreguntasYOpciones();
-        System.out.println("bbbbbbbbbb");
     }//GEN-LAST:event_jButton15ActionPerformed
 
     private void jButton17ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton17ActionPerformed
